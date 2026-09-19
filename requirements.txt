@@ -1,0 +1,21 @@
+# Core ML / LLM
+torch>=2.0
+transformers>=4.40
+peft>=0.10
+trl>=0.9
+accelerate>=0.27
+datasets>=2.18
+
+# Optimization
+pulp>=2.7
+
+# Web / API
+fastapi>=0.110
+uvicorn[standard]>=0.27
+httpx>=0.27
+
+# Data validation
+pydantic>=2.5
+
+# Testing
+pytest>=8.0

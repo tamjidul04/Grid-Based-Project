@@ -1,0 +1,16 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+*.pt
+*.bin
+*.safetensors
+*.gguf
+checkpoints/
+runs/
+models/
+.env
+*.log
+
+# Organizer-issued PDFs (do not redistribute publicly)
+data/raw/problem_statement.pdf
+data/raw/participant_guide.pdf
