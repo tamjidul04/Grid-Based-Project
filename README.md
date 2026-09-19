@@ -61,7 +61,7 @@ pytest tests/
 
 | Member | Role |
 |---|---|
-| Md.Tamjidul Islam | Lead / LLM training / Data pipeline / Backend / optimizer / Frontend / visualization |
+| Md. Tamjidul Islam | Lead / LLM training / Data pipeline / Backend / optimizer / Frontend / visualization |
 
 ## License
 

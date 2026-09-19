@@ -2,9 +2,10 @@
 
 Phase A behavior:
     1. Validate the input against InputSchema.
-    2. Parse operator notes into directives using the rule-based fallback.
-       (Phase B will swap this for the fine-tuned LLM, with the rules as a
-        safety net if the LLM output is invalid.)
+    2. Parse operator notes into directives.
+       - If GRIDWISE_USE_LLM=1, use the fine-tuned Qwen LLM.
+       - Otherwise (default), use the rule-based fallback.
+       - If the LLM fails, transparently fall back to the rules.
     3. Solve the 24-hour schedule with the PuLP optimizer.
     4. Validate the output against all official constraints.
     5. Return the OutputSchema.
@@ -21,9 +22,8 @@ import logging
 
 from fastapi import FastAPI, HTTPException
 
-from llm.schema import InputSchema, OutputSchema
+from llm import InputSchema, OutputSchema, llm_enabled, parse_directives_safely
 from optimizer.model import InfeasibleScheduleError, optimize_schedule
-from optimizer.rules_fallback import parse_notes
 from optimizer.validate import validate_output
 
 logger = logging.getLogger("gridwise")
@@ -31,7 +31,7 @@ logging.basicConfig(level=logging.INFO)
 
 app = FastAPI(
     title="GridWise LLM — Optimize Energy",
-    version="0.1.0",
+    version="0.2.0",
     description="BUP CSE FEST 2026 — Track 02, Problem P-08.",
 )
 
@@ -40,7 +40,8 @@ app = FastAPI(
 def root() -> dict[str, str]:
     return {
         "service": "GridWise LLM",
-        "phase": "A — rule-based directive parser + LP optimizer",
+        "phase": "B — LLM directive parser + LP optimizer (rules fallback)",
+        "llm_enabled": str(llm_enabled()),
         "endpoint": "POST /optimize-energy",
     }
 
@@ -54,7 +55,7 @@ def healthz() -> dict[str, str]:
 def optimize_energy(payload: InputSchema) -> OutputSchema:
     """Take an InputSchema, return a constraint-satisfying 24-hour schedule."""
     try:
-        directives = parse_notes(payload)
+        directives = parse_directives_safely(payload)
         output = optimize_schedule(payload, directives)
     except InfeasibleScheduleError as e:
         logger.warning("Infeasible schedule for %s: %s", payload.scenario_id, e)
