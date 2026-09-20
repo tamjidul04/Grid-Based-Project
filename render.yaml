@@ -1,18 +1,21 @@
-# Render Blueprint — deploys the GridWise FastAPI app as a free Web Service.
+# Render Blueprint — deploys GridWise FastAPI as a free Web Service.
 #
-# Usage:
-#   1. Sign in at https://render.com (no card needed for free tier)
-#   2. New + -> Blueprint -> point at this repo
-#   3. Render reads this file, builds the Docker image, exposes a public URL
+# Default: rules-fallback parser (10/10 accuracy, no API key required).
 #
-# Result:
-#   https://gridwise-<random>.onrender.com  ->  FastAPI app
-#   POST /optimize-energy                   ->  full schedule response
+# To use a hosted LLM during judging:
+#   1. Get a fresh key (groq has ~30 RPM free; gemini has 20/day Flash).
+#   2. In the Render dashboard, go to your service -> Environment:
+#      - Add env: GEMINI_API_KEY = <key>     (or GROQ_API_KEY = <key>)
+#      - Set GRIDWISE_USE_GEMINI = 1         (or GRIDWISE_USE_GROQ = 1)
+#      - Remove or set GRIDWISE_USE_GROQ/GRIDWISE_USE_GEMINI = 0 for the
+#        one you DON'T want.
+#   3. Save. Render auto-redeploys ~30 seconds later.
 #
-# Free tier notes:
-#   - Spins down after 15 min of inactivity (cold start ~30s).
-#   - 750 hours/month free (enough for judging + demo).
-#   - No credit card required.
+# If a key's quota is exhausted mid-demo, set both back to 0 — rules
+# parser still gives correct answers on every public sample case.
+#
+# Result: https://gridwise-<random>.onrender.com/optimize-energy
+# Free tier: 750 hrs/mo, no card required, sleeps after 15min idle.
 
 services:
   - type: web
@@ -26,9 +29,19 @@ services:
     healthCheckPath: /healthz
     autoDeploy: true
     envVars:
+      # Default: rules fallback only (no LLM, no API cost, 10/10 accuracy)
+      - key: GRIDWISE_USE_GROQ
+        value: "0"
+      - key: GRIDWISE_USE_GEMINI
+        value: "0"
       - key: GRIDWISE_USE_LLM
         value: "0"
       - key: PYTHONUNBUFFERED
         value: "1"
       - key: PORT
         value: "10000"
+      # Uncomment + add these in the Render dashboard to switch to an LLM:
+      # - key: GROQ_API_KEY
+      #   value: <paste your gsk_... key here in the Render UI>
+      # - key: GEMINI_API_KEY
+      #   value: <paste your AIza... key here in the Render UI>

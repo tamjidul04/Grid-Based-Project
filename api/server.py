@@ -43,6 +43,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from llm import InputSchema, OutputSchema, llm_enabled, parse_directives_safely
 from llm.gemini import gemini_enabled, parse_directives_safely_gemini
+from llm.groq import groq_enabled, parse_directives_safely_groq
 from optimizer.model import InfeasibleScheduleError, optimize_schedule
 from optimizer.validate import validate_output
 
@@ -143,7 +144,8 @@ app.add_middleware(
 def root() -> dict[str, str]:
     return {
         "service": "GridWise",
-        "phase": "Production — Gemini API directive parser + LP optimizer (rules fallback)",
+        "phase": "Production — Groq LLM directive parser + LP optimizer (rules fallback)",
+        "groq_enabled": str(groq_enabled()),
         "gemini_enabled": str(gemini_enabled()),
         "llm_enabled": str(llm_enabled()),
         "cache_enabled": str(cache_enabled()),
@@ -177,10 +179,13 @@ def optimize_energy(payload: InputSchema) -> OutputSchema:
 
     try:
         # Parser precedence:
-        #   1. Gemini (if GRIDWISE_USE_GEMINI=1) — production LLM path on cloud
-        #   2. Local Qwen LLM (if GRIDWISE_USE_LLM=1) — kept for the experiment
-        #   3. Rules fallback — always works, 10/10 accuracy
-        if gemini_enabled():
+        #   1. Groq (if GRIDWISE_USE_GROQ=1) — production LLM path (fast, generous free tier)
+        #   2. Gemini (if GRIDWISE_USE_GEMINI=1) — alternative LLM path
+        #   3. Local Qwen LLM (if GRIDWISE_USE_LLM=1) — kept for the experiment
+        #   4. Rules fallback — always works, 10/10 accuracy
+        if groq_enabled():
+            directives = parse_directives_safely_groq(payload)
+        elif gemini_enabled():
             directives = parse_directives_safely_gemini(payload)
         else:
             directives = parse_directives_safely(payload)

@@ -1,12 +1,8 @@
 # Slim requirements for cloud deployment (Render free tier).
 #
-# Same runtime minus the heavy ML stack — torch/transformers/peft/trl are
-# excluded because:
-#   - The local Qwen2.5 model is too inaccurate on CPU to ship as primary.
-#   - On Render we use Gemini API (just needs `google-genai`).
-#   - Rules fallback has 10/10 accuracy and runs in 10ms.
-#
-# If you want the local LLM in the cloud image, uncomment the ML block.
+# Default cloud image has the rules-fallback parser only (10/10 accuracy,
+# no API key needed). To use an LLM in the cloud image, install its SDK
+# in the image AND set the corresponding env var on Render.
 
 # --- Web framework + LP solver ---
 fastapi>=0.110
@@ -14,10 +10,12 @@ uvicorn[standard]>=0.27
 pydantic>=2.5
 pulp>=2.7
 
-# --- Gemini API client (used when GRIDWISE_USE_GEMINI=1) ---
+# --- LLM SDKs (small, kept in image so toggling GRIDWISE_USE_GROQ=1 or
+#     GRIDWISE_USE_GEMINI=1 in the Render dashboard Just Works) ---
+groq>=0.11
 google-genai>=0.3
 
-# --- Optional ML stack (uncomment for local LLM in cloud image) ---
+# --- Optional ML stack (uncomment to ship the local Qwen LLM) ---
 # torch>=2.0
 # transformers>=4.40
 # peft>=0.10

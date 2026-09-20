@@ -39,8 +39,8 @@ def _api_key() -> str | None:
 
 
 def _model_name() -> str:
-    """Default to Gemini 2.5 Flash — fast + smart, free tier."""
-    return os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+    """Default to Gemini 3.5 Flash — generous free-tier limits, strong at JSON."""
+    return os.environ.get("GEMINI_MODEL", "gemini-3.5-flash")
 
 
 def _notes_key(notes: list[str]) -> str:
@@ -83,8 +83,9 @@ def _call_gemini(messages: list[dict]) -> str:
         contents=prompt,
         config={
             "temperature": 0.0,        # greedy — deterministic for directives
-            "max_output_tokens": 1024,
+            "max_output_tokens": 4096, # plenty for 1-3 directives + few-shot
             "response_mime_type": "application/json",  # hint for JSON output
+            "automatic_function_calling": {"disable": True},  # we don't need tools
         },
     )
     return (resp.text or "").strip()
