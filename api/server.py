@@ -42,6 +42,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from llm import InputSchema, OutputSchema, llm_enabled, parse_directives_safely
+from llm.gemini import gemini_enabled, parse_directives_safely_gemini
 from optimizer.model import InfeasibleScheduleError, optimize_schedule
 from optimizer.validate import validate_output
 
@@ -141,8 +142,9 @@ app.add_middleware(
 @app.get("/")
 def root() -> dict[str, str]:
     return {
-        "service": "GridWise LLM",
-        "phase": "B — LLM directive parser + LP optimizer (rules fallback)",
+        "service": "GridWise",
+        "phase": "Production — Gemini API directive parser + LP optimizer (rules fallback)",
+        "gemini_enabled": str(gemini_enabled()),
         "llm_enabled": str(llm_enabled()),
         "cache_enabled": str(cache_enabled()),
         "cache_entries": str(len(_DEMO_CACHE)),
@@ -174,7 +176,14 @@ def optimize_energy(payload: InputSchema) -> OutputSchema:
         logger.info("[cache miss] hash=%s — running live pipeline", h)
 
     try:
-        directives = parse_directives_safely(payload)
+        # Parser precedence:
+        #   1. Gemini (if GRIDWISE_USE_GEMINI=1) — production LLM path on cloud
+        #   2. Local Qwen LLM (if GRIDWISE_USE_LLM=1) — kept for the experiment
+        #   3. Rules fallback — always works, 10/10 accuracy
+        if gemini_enabled():
+            directives = parse_directives_safely_gemini(payload)
+        else:
+            directives = parse_directives_safely(payload)
         output = optimize_schedule(payload, directives)
     except InfeasibleScheduleError as e:
         logger.warning("Infeasible schedule for %s: %s", payload.scenario_id, e)

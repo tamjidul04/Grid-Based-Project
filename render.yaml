@@ -1,0 +1,34 @@
+# Render Blueprint — deploys the GridWise FastAPI app as a free Web Service.
+#
+# Usage:
+#   1. Sign in at https://render.com (no card needed for free tier)
+#   2. New + -> Blueprint -> point at this repo
+#   3. Render reads this file, builds the Docker image, exposes a public URL
+#
+# Result:
+#   https://gridwise-<random>.onrender.com  ->  FastAPI app
+#   POST /optimize-energy                   ->  full schedule response
+#
+# Free tier notes:
+#   - Spins down after 15 min of inactivity (cold start ~30s).
+#   - 750 hours/month free (enough for judging + demo).
+#   - No credit card required.
+
+services:
+  - type: web
+    name: gridwise
+    runtime: docker
+    rootDir: .
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: free
+    region: oregon
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: GRIDWISE_USE_LLM
+        value: "0"
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: PORT
+        value: "10000"
