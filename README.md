@@ -1,8 +1,18 @@
-# GridWise LLM — BUP CSE FEST 2026 (Phase 2)
+# GridWise — Microgrid Schedule Optimizer
 
-**Track 02 · Problem P-08 · Team GridMind**
+A directive-aware microgrid scheduler. Free-text operator notes are
+classified into typed directives, then a linear program produces an
+optimal 24-hour battery / solar / grid schedule that satisfies all
+hard physics and directive constraints.
 
-A fine-tuned small LLM (Qwen2.5-1.5B with LoRA) that interprets free-text grid-operator notes into structured directives, paired with a deterministic LP-based 24-hour energy optimizer that produces an optimal battery/solar/grid schedule.
+Built two ways:
+
+| Mode | Parser | Backend | When to use |
+|---|---|---|---|
+| **Phase A** (default) | hand-written rule-based extractor (~6 enum types) | FastAPI + PuLP LP (CBC) | production: 10/10 sample cases match reference exactly |
+| **Phase B** | fine-tuned Qwen2.5-1.5B-Instruct + LoRA (if weights present) | FastAPI + PuLP LP | shows the LLM-based pipeline; falls back to rules on parse failure |
+
+Toggle phase B at runtime with `GRIDWISE_USE_LLM=1`.
 
 ## Architecture
 
@@ -43,25 +53,55 @@ A fine-tuned small LLM (Qwen2.5-1.5B with LoRA) that interprets free-text grid-o
 ```bash
 pip install -r requirements.txt
 
-# Phase A: works without any LLM weights loaded (rule-based only)
+# Run the optimizer end-to-end on the 10 public sample cases (Phase A)
 python scripts/evaluate.py
 
-# Phase B: fine-tune the LLM on CPU
-python scripts/gen_synthetic_data.py
-python -m llm.fine_tune.train_lora
-
 # Run the API
-uvicorn api.server:app --reload
+python -m uvicorn api.server:app --port 8000 --reload
+# (set GRIDWISE_USE_LLM=1 to enable LLM directive parsing if a merged
+#  model exists at models/qwen2.5-1.5b-gridwise-merged/)
+# (set GRIDWISE_USE_CACHE=1 to serve pre-computed demo results instantly)
+
+# Frontend dashboard
+cd frontend && python -m http.server 5500
+# open http://localhost:5500
 
 # Run all tests
 pytest tests/
 ```
 
-## Team
+## Optional: Phase B — fine-tuned LLM directive parser
 
-| Member | Role |
-|---|---|
-| Md. Tamjidul Islam | Lead / LLM training / Data pipeline / Backend / optimizer / Frontend / visualization |
+```bash
+python scripts/dl.py                                # download Qwen2.5-1.5B (~3 GB)
+python scripts/gen_synthetic_data.py                # 1500 synthetic training pairs
+python -m llm.fine_tune.train_lora                  # LoRA fine-tune
+python -m llm.fine_tune.merge_weights               # merge LoRA into base
+GRIDWISE_USE_LLM=1 python -m uvicorn api.server:app --port 8000
+```
+
+> **CPU note:** LoRA fine-tuning of 1.5B-parameter models on CPU is
+> very slow — measured step times were ~30 s for the first step and
+> ballooned afterwards. The training script is provided as the
+> documented methodology; the rules fallback already achieves 10/10
+> on the public sample cases, so production runs use Phase A.
+
+## Live demo
+
+```bash
+# Live pipeline (rules fallback, ~5-10s for 10 cases)
+python scripts/demo.py
+
+# Instant cached responses — for the polished demo
+python scripts/demo.py --cache
+
+# With the fine-tuned LLM (Phase B — if a merged model exists)
+python scripts/demo.py --use-llm
+```
+
+## Author
+
+Tamjidul Islam.
 
 ## License
 

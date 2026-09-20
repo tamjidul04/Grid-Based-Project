@@ -31,7 +31,6 @@ from peft import LoraConfig, TaskType, get_peft_model
 from transformers import (
     AutoModelForCausalLM,
     AutoTokenizer,
-    DataCollatorForLanguageModeling,
     Trainer,
     TrainingArguments,
 )
@@ -150,19 +149,19 @@ def main() -> None:
         per_device_train_batch_size=args.batch_size,
         gradient_accumulation_steps=args.grad_accum,
         learning_rate=args.lr,
-        warmup_ratio=0.03,
+        warmup_steps=10,
         logging_steps=10,
-        save_strategy="no",  # save once at the end via the explicit call below
-        bf16=False,          # CPU
-        fp16=False,          # CPU fp16 is finicky; use fp32 weights + fp16 only for storage
+        save_strategy="no",
+        bf16=False,
+        fp16=False,
         optim="adamw_torch",
         report_to="none",
         seed=args.seed,
         dataloader_num_workers=0,
-        gradient_checkpointing=False,  # CPU-only — saves memory but is slow; off by default
+        gradient_checkpointing=False,
     )
 
-    collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False)
+    collator = _Seq2SeqPaddingCollator(tokenizer)
 
     trainer = Trainer(
         model=model,
@@ -178,6 +177,35 @@ def main() -> None:
     model.save_pretrained(str(out_dir))
     tokenizer.save_pretrained(str(out_dir))
     print("Done.")
+
+
+class _Seq2SeqPaddingCollator:
+    """Pads input_ids, attention_mask, AND labels (the -100 mask) to the
+    same length. The default DataCollatorForLanguageModeling doesn't pad
+    labels, which newer transformers versions refuse to convert to tensors.
+    """
+
+    def __init__(self, tokenizer):
+        self.tokenizer = tokenizer
+        self.pad_id = tokenizer.pad_token_id
+
+    def __call__(self, features: list[dict]) -> dict:
+        import torch as _torch
+        max_len = max(len(f["input_ids"]) for f in features)
+        batch = {"input_ids": [], "attention_mask": [], "labels": []}
+        for f in features:
+            n = len(f["input_ids"])
+            pad = max_len - n
+            batch["input_ids"].append(
+                list(f["input_ids"]) + [self.pad_id] * pad
+            )
+            batch["attention_mask"].append(
+                list(f["attention_mask"]) + [0] * pad
+            )
+            batch["labels"].append(
+                list(f["labels"]) + [-100] * pad
+            )
+        return {k: _torch.tensor(v, dtype=_torch.long) for k, v in batch.items()}
 
 
 if __name__ == "__main__":

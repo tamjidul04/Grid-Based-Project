@@ -11,6 +11,13 @@ models/
 .env
 *.log
 
+# Generated artifacts (regeneratable from scripts/cache_demo_results.py)
+data/demo_cache.json
+
+# Throwaway diagnostic scripts
+scripts/_size_check.py
+scripts/_len_check.py
+
 # Organizer-issued PDFs (do not redistribute publicly)
 data/raw/problem_statement.pdf
 data/raw/participant_guide.pdf
