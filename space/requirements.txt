@@ -1,0 +1,21 @@
+# Slim requirements for the HuggingFace Space deployment.
+#
+# The Space uses the deterministic rules_fallback directive parser by
+# default, so we DO NOT need torch/transformers/peft/trl — those only
+# matter when GRIDWISE_USE_LLM=1. Keeping them out of the Space image
+# shrinks it from ~3 GB to ~250 MB and dramatically reduces cold start.
+#
+# If you want to enable the LLM in the Space, set GRIDWISE_USE_LLM=1
+# in the Space settings and uncomment the ML block below.
+
+# --- Core API + LP ---
+pulp>=2.7
+fastapi>=0.110
+uvicorn[standard]>=0.27
+pydantic>=2.5
+
+# --- Optional ML stack (uncomment to enable GRIDWISE_USE_LLM in Space) ---
+# torch>=2.0
+# transformers>=4.40
+# peft>=0.10
+# accelerate>=0.27
