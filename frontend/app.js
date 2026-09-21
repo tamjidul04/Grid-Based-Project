@@ -103,7 +103,7 @@
     }
     const sel = $("case-select");
     sel.innerHTML = sampleCases
-      .map((c) => `<option value="${c.id}">${c.id}</option>`)
+      .map((c) => `<option value="${c.id}">${c.id}${c.label ? " — " + c.label : ""}</option>`)
       .join("");
   }
 
