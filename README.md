@@ -63,7 +63,7 @@ python -m uvicorn api.server:app --port 8000 --reload
 # (set GRIDWISE_USE_CACHE=1 to serve pre-computed demo results instantly)
 
 # Frontend dashboard
-cd frontend && python -m http.server 5500
+cd public && python -m http.server 5500
 # open http://localhost:5500
 
 # Run all tests
