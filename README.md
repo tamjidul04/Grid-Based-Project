@@ -51,7 +51,7 @@ Toggle phase B at runtime with `GRIDWISE_USE_LLM=1`.
 ## Quick start
 
 ```bash
-pip install -r requirements.txt
+pip install -r requirements-dev.txt
 
 # Run the optimizer end-to-end on the 10 public sample cases (Phase A)
 python scripts/evaluate.py
