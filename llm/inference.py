@@ -34,8 +34,9 @@ import threading
 from functools import lru_cache
 from typing import List, Tuple
 
-import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer
+# torch + transformers are imported LAZILY inside _load_model() so that
+# the rest of this module (and the API server) can be imported on cloud
+# images where the ML stack isn't installed.
 
 from llm.directives import ParseError, parse_directive_json
 from llm.prompts import build_messages
@@ -68,6 +69,12 @@ def llm_enabled() -> bool:
 @lru_cache(maxsize=1)
 def _load_model():
     """Load model + tokenizer once and cache. Singleton across the process."""
+    # Lazy imports: only need torch/transformers when this is actually called.
+    # Lets the cloud image ship without the ML stack and still import this
+    # module safely.
+    import torch
+    from transformers import AutoModelForCausalLM, AutoTokenizer
+
     path = _model_path()
     logger.info("Loading LLM from %s (this happens once)", path)
     tok = AutoTokenizer.from_pretrained(path, trust_remote_code=True)
